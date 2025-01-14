@@ -1,28 +1,45 @@
-from microdot import Microdot
-from pyb import UART
-import network
+import socketpool
+import wifi
+from adafruit_httpserver import Server, Request, Response
 
-wlan = network.WLAN(network.STA_IF)
-wlan.active(True)
-ssid ='SALLE_ADO'
-password ='plcbAT2023'
-wlan.connect(ssid, password)
+import usb_hid
+from adafruit_hid.keyboard import Keyboard
 
-app = Microdot()
+from layouts.keyboard_layout_win_fr import KeyboardLayout as LayoutFR
+from adafruit_hid.keyboard_layout_us import KeyboardLayoutUS as LayoutUS
 
-def render(content):
-    return '<meta charset="utf-8">{0}'.format(content), 200, {"Content-Type":"text/html"} 
+kbd = Keyboard(usb_hid.devices)
+layouts = {
+    "fr": LayoutFR(kbd),
+    "us": LayoutUS(kbd)
+}
+layout = layouts["fr"]
 
-@app.route('/')
-async def index(request):
-    return render('<h1>🪨KAYOOOUUU🪨</h1>')
+ssid =''
+password =''
+print(f"Connecting to {ssid}...")
+wifi.radio.connect(ssid, password)
+print(f"Connected to {ssid}")
 
-@app.route('/api/kayou')
-async def kayou(request):
-    uart = UART(1, 9600)
-    uart.write('kayou')
-    return '', 200
+pool = socketpool.SocketPool(wifi.radio)
 
-port = 5000
-print("Starting microdot on port {0}".format(port))
-app.run(host="0.0.0.0", port=port)
+server = Server(pool, "/static", debug=True)
+
+@server.route("/")
+def base(request: Request):
+    return Response(request, "Hello World!")
+
+@server.route("/write", ['POST', 'GET'])
+def typing(request: Request):
+    if request.method == 'GET':
+        layout.write("MDL")
+    elif request.method == 'POST':
+        data = request.json()
+        if "message" in data.keys():
+            layout.write(data["message"])
+        else:
+            return Response(request, "'message' not found")
+    
+    return Response(request, "done")
+
+server.serve_forever(str(wifi.radio.ipv4_address))
