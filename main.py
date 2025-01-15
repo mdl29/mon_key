@@ -29,14 +29,17 @@ server = Server(pool, "/static", debug=True)
 def base(request: Request):
     return Response(request, "Hello World!")
 
-@server.route("/write", ['POST', 'GET'])
+@server.route("/api/write", ['POST', 'GET'])
 def typing(request: Request):
     if request.method == 'GET':
         layout.write("MDL")
     elif request.method == 'POST':
         data = request.json()
+        lyt = layouts.get(data.get("layout", "fr").lower(), None)
+        if lyt == None:
+            return Response(request, f"invalid layout '{data.get('layout')}'")
         if "message" in data.keys():
-            layout.write(data["message"])
+            lyt.write(data["message"])
         else:
             return Response(request, "'message' not found")
     
