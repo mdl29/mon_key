@@ -1,0 +1,1 @@
+Le serveur qui tourne côté client, comme ça on peut avoir un joli frontend en React ou autre sans surcharger la pico

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trackpad</title>
+    <style>
+        html, body, #trackpad {
+            height: 100vh;
+            width: 100vw;
+            padding: 0%;
+            margin: 0%;
+        }
+        #trackpad {
+            background-color: azure;
+        }
+    </style>
+</head>
+<body>
+    <div id="trackpad"></div>
+    <script>
+        const pad = document.getElementById("trackpad");
+        let lastX = 0;
+        let lastY = 0;
+        let isDown = false;
+
+        const socket = new WebSocket('ws://192.168.1.61:5000/api/trackpad');
+
+        socket.addEventListener('open', function (event) {
+            console.log('Connected to WebSocket');
+        });
+
+        socket.addEventListener('close', function (event) {
+            console.log('Disconnected from WebSocket');
+        });
+
+        pad.addEventListener("mousedown", (e) => {
+            isDown = true;
+            lastX = e.clientX;
+            lastY = e.clientY;
+        });
+
+        pad.addEventListener("mousemove", (e) => {
+            if (isDown) {
+                const dX = lastX - e.clientX;
+                const dY = lastY - e.clientY;
+                socket.send(dX + ";" + dY);
+                lastX = e.clientX;
+                lastY = e.clientY;
+            }
+        });
+
+        pad.addEventListener("mouseup", (e) => {
+            isDown = false;
+        });
+
+        pad.addEventListener("touchstart", (e) => {
+            isDown = true;
+            lastX = e.touches[0].clientX;
+            lastY = e.touches[0].clientY;
+        });
+
+        pad.addEventListener("touchmove", (e) => {
+            if (isDown) {
+                const dX = lastX - e.touches[0].clientX;
+                const dY = lastY - e.touches[0].clientY;
+                socket.send(dX + ";" + dY);
+                lastX = e.touches[0].clientX;
+                lastY = e.touches[0].clientY;
+            }
+        });
+
+        pad.addEventListener("touchend", (e) => {
+            isDown = false;
+        });
+    </script>
+</body>
+</html>
